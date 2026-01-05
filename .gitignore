@@ -1,0 +1,116 @@
+# -----------------------------
+# 通用
+# -----------------------------
+# Python 字节码
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C 扩展
+*.so
+*.pyd
+*.dll
+
+# 虚拟环境
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE / 编辑器
+# VS Code
+.vscode/
+# PyCharm / IntelliJ
+.idea/
+# VS / Rider
+.vs/
+# 通用编辑器缓存
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# -----------------------------
+# 打包 / 构建
+# -----------------------------
+# setuptools / wheel / pip
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Cython / 编译产物
+*.c
+*.cpp
+*.o
+*.obj
+*.pdb
+*.exp
+*.lib
+
+# -----------------------------
+# 测试 / 覆盖率
+# -----------------------------
+# pytest
+.cache/
+.pytest_cache/
+
+# nose
+.noseids
+
+# tox
+.tox/
+.toxenv/
+.coverage
+.coverage.*
+htmlcov/
+
+# coverage.py
+cover/
+coverage.xml
+
+# hypothesis
+.hypothesis/
+
+# -----------------------------
+# 日志 / 运行时
+# -----------------------------
+*.log
+logs/
+log/
+
+# SQLite / 其他临时数据库
+*.sqlite3
+db.sqlite3
+
+# -----------------------------
+# 文档构建
+# -----------------------------
+# Sphinx
+docs/_build/
+doc/_build/
+_build/
+
+# MkDocs
+site/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# -----------------------------
+# 配置 / 本地开发
+# -----------------------------
+# 本地环境配置
+*.env
+*.env.*
+.env.local
+git-tag-lookup
