@@ -10,7 +10,6 @@ from typing import List, Dict, Optional
 from .utils import (
     is_git_url,
     is_local_directory,
-    find_earliest_tag,
     format_json_output
 )
 
@@ -103,8 +102,99 @@ def check_commit_in_tag_local(repo_path: str, commit: str, tag: str) -> bool:
         return False
 
 
-def find_earliest_tag_for_commit(repo: str, commit: str) -> Dict:
-    """Find the earliest tag (by version) that contains the given commit."""
+def get_tag_timestamp(repo_path: str, tag: str) -> Optional[int]:
+    """Get the timestamp of a tag (when it was created/committed).
+    
+    Returns the timestamp as an integer (Unix timestamp), or None if unable to get it.
+    """
+    try:
+        # Try to get the commit date of the tag
+        result = subprocess.run(
+            ['git', 'log', '-1', '--format=%ct', tag],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=10
+        )
+        timestamp_str = result.stdout.strip()
+        if timestamp_str:
+            return int(timestamp_str)
+    except (subprocess.CalledProcessError, ValueError, subprocess.TimeoutExpired):
+        pass
+    
+    # Fallback: try using for-each-ref
+    try:
+        result = subprocess.run(
+            ['git', 'for-each-ref', '--format=%(creatordate:unix)', f'refs/tags/{tag}'],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=10
+        )
+        timestamp_str = result.stdout.strip()
+        if timestamp_str:
+            return int(timestamp_str)
+    except (subprocess.CalledProcessError, ValueError, subprocess.TimeoutExpired):
+        pass
+    
+    return None
+
+
+def find_earliest_tags_by_time(repo_path: str, tags: List[str], limit: int = 1) -> List[str]:
+    """Find the earliest tags by creation time from a list of tags.
+    
+    Returns a list of tags sorted by creation time (earliest first).
+    If limit is specified, returns at most that many tags.
+    """
+    if not tags:
+        return []
+    
+    # Get timestamps for all tags
+    tag_timestamps = []
+    tags_without_timestamp = []
+    
+    for tag in tags:
+        timestamp = get_tag_timestamp(repo_path, tag)
+        if timestamp is not None:
+            tag_timestamps.append((tag, timestamp))
+        else:
+            tags_without_timestamp.append(tag)
+    
+    result = []
+    
+    # Sort by timestamp (earliest first)
+    tag_timestamps.sort(key=lambda x: x[1])
+    
+    # Add tags with timestamps first
+    for tag, _ in tag_timestamps:
+        if len(result) >= limit:
+            break
+        result.append(tag)
+    
+    # If we still need more tags and there are tags without timestamps, add them alphabetically
+    if len(result) < limit and tags_without_timestamp:
+        tags_without_timestamp.sort()
+        for tag in tags_without_timestamp:
+            if len(result) >= limit:
+                break
+            result.append(tag)
+    
+    return result
+
+
+def find_earliest_tag_for_commit(repo: str, commit: str, limit: int = 1) -> Dict:
+    """Find the earliest tags (by creation time) that contain the given commit.
+    
+    Args:
+        repo: Git repository URL or local directory path
+        commit: Commit hash to find tags containing it
+        limit: Maximum number of tags to return (default: 1)
+    
+    Returns:
+        Dictionary with repo, commit, and tags (or earliest_tag for backward compatibility)
+    """
     temp_dir = None
     original_repo = repo
     
@@ -132,6 +222,7 @@ def find_earliest_tag_for_commit(repo: str, commit: str) -> Dict:
                 "repo": original_repo,
                 "commit": commit,
                 "earliest_tag": None,
+                "tags": [],
                 "error": "No tags found in repository"
             }
         
@@ -143,17 +234,26 @@ def find_earliest_tag_for_commit(repo: str, commit: str) -> Dict:
                 "repo": original_repo,
                 "commit": commit,
                 "earliest_tag": None,
+                "tags": [],
                 "error": f"No tag contains commit {commit}"
             }
-        
-        # Find the earliest tag (handles both version-parsable and non-parsable tags)
-        earliest_tag = find_earliest_tag(containing_tags)
-        
-        return {
+
+        # Find the earliest tags by creation time
+        earliest_tags = find_earliest_tags_by_time(repo, containing_tags, limit)
+
+        result = {
             "repo": original_repo,
             "commit": commit,
-            "earliest_tag": earliest_tag
+            "tags": earliest_tags
         }
+
+        # For backward compatibility, also include earliest_tag when limit is 1
+        if earliest_tags:
+            result["earliest_tag"] = earliest_tags[0]
+        else:
+            result["earliest_tag"] = None
+
+        return result
     finally:
         # Clean up temporary directory
         if temp_dir and os.path.exists(temp_dir):

@@ -17,6 +17,9 @@ Examples:
   # Find earliest tag containing a commit
   git-tag-lookup --repo https://github.com/sgl-project/sglang --commit 123xxx
   
+  # Find top 5 earliest tags containing a commit
+  git-tag-lookup --repo https://github.com/sgl-project/sglang --commit 123xxx -n 5
+  
   # Search commits by keyword
   git-tag-lookup --repo /path/to/repo --key "fix bug"
   
@@ -47,21 +50,23 @@ Examples:
         '-n',
         '--limit',
         type=int,
-        default=None,
-        help='Limit the number of results when searching commits (only for --key)'
+        default=1,
+        help='Limit the number of results. For --commit: number of earliest tags to return (default: 1). For --key: number of commits to return.'
     )
     
     args = parser.parse_args()
     
     try:
         if args.commit:
-            # Function 1: Find earliest tag for commit
-            result = find_earliest_tag_for_commit(args.repo, args.commit)
+            # Function 1: Find earliest tag(s) for commit
+            limit = args.limit if args.limit is not None else 1
+            result = find_earliest_tag_for_commit(args.repo, args.commit, limit)
             print(format_json_output(result))
             
         elif args.keyword:
             # Function 2: Search commits by keyword
-            result = search_commits_by_keyword(args.repo, args.keyword, args.limit)
+            limit = args.limit if args.limit is not None else None
+            result = search_commits_by_keyword(args.repo, args.keyword, limit)
             print(format_json_output(result))
             
     except GitTagLookupError as e:

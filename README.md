@@ -27,11 +27,8 @@
 
 - 支持 Git 仓库 URL 或本地目录路径
 - 对远程仓库，在需要时自动克隆到本地
-- 按 **语义版本号** 排序，从中找出「最早的发布版本」
-- 支持所有 tag 格式：
-  - 能解析为版本号的 tag（如 `v1.0.0`、`1.2.3`、`release-1.0.0` 等）会按版本号排序
-  - 无法解析为版本号的 tag 会按字母顺序排序
-  - 最终从所有包含该 commit 的 tag 中选出版本号最小的（或字母序最早的）
+- 按 **创建时间** 排序，找出「最早的发布版本」（按 tag 的创建时间，而非版本号）
+- 支持所有 tag 格式，无论 tag 名称如何，都会按时间顺序查找
 
 ### 2. 根据关键词搜索提交
 
@@ -41,8 +38,14 @@
   - 提交信息
   - 作者
   - 日期
-- 支持使用 `-n` 限制结果条数
+- 支持使用 `-n` 限制结果条数（默认返回全部）
 - 目前在 **本地仓库** 中搜索（远程仓库需要先自行克隆）
+
+### 3. 通用选项
+
+- `-n` / `--limit` 选项适用于两种功能：
+  - 查找 tag 时：返回前 n 个最早的 tag（默认 n=1）
+  - 搜索提交时：返回前 n 个匹配的提交（默认返回全部）
 
 
 ## 安装方法
@@ -80,20 +83,35 @@ pip install -e .
 ### 查找包含 commit 的最早 tag
 
 ```bash
-# 使用 git URL
+# 使用 git URL（默认返回 1 个最早的 tag）
 git-tag-lookup --repo https://github.com/sgl-project/sglang --commit 123xxx
+
+# 返回前 5 个最早的 tag
+git-tag-lookup --repo https://github.com/sgl-project/sglang --commit 123xxx -n 5
 
 # 使用本地目录
 git-tag-lookup --repo /path/to/repo --commit abc123def456
 ```
 
-**输出示例：**
+**输出示例（单个 tag）：**
 
 ```json
 {
   "repo": "https://github.com/sgl-project/sglang",
   "commit": "123xxx",
-  "earliest_tag": "v1.0.0"
+  "earliest_tag": "v1.0.0",
+  "tags": ["v1.0.0"]
+}
+```
+
+**输出示例（多个 tag）：**
+
+```json
+{
+  "repo": "https://github.com/sgl-project/sglang",
+  "commit": "123xxx",
+  "limit": 5,
+  "tags": ["v1.0.0", "v1.0.1", "v1.1.0", "v1.2.0", "v2.0.0"]
 }
 ```
 
@@ -141,14 +159,16 @@ git-tag-lookup --repo /path/to/repo --key "修复bug" -n 10
 
 --key KEYWORD      在提交信息中搜索的关键词
 
--n, --limit N      搜索提交时限制结果数量（仅用于 --key）
+-n, --limit N      限制结果数量
+                   - 对于 --commit：返回前 n 个最早的 tag（默认：1）
+                   - 对于 --key：返回前 n 个匹配的提交（默认：全部）
 ```
 
 ## 依赖要求
 
 - Python 3.7+
 - Git（必须安装并在 PATH 中可用）
-- packaging（用于版本号排序）
+- packaging（Python 依赖包）
 
 ## 注意事项
 
@@ -157,10 +177,9 @@ git-tag-lookup --repo /path/to/repo --key "修复bug" -n 10
    - 克隆后使用本地目录路径
    - 查找标签时工具会自动克隆远程仓库
 
-2. **标签版本排序**
-   - 标签按语义版本排序（例如 v1.0.0、1.2.3）
-   - 无法解析为版本的标签按字母顺序排序
-   - "最早"的标签是按版本号确定的，而不是按创建时间
+2. **标签时间排序**
+   - 标签按创建时间排序，找出最早的发布版本
+   - "最早"的标签是按创建时间确定的，而不是按版本号
 
 3. **关键词搜索**
    - 使用不区分大小写的模糊匹配
