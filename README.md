@@ -170,10 +170,6 @@ git-tag-lookup --repo /path/to/repo --key "修复bug" -n 10
 - 未找到 git 命令
 - 克隆远程仓库时网络超时
 
-## 许可证
-
-MIT License
-
 ## 贡献
 
 欢迎贡献代码！请随时提交 Pull Request。
